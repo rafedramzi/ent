@@ -356,7 +356,7 @@ func (u *MixinIDUpsertOne) ExecX(ctx context.Context) {
 	}
 }
 
-// Exec executes the UPSERT query and returns the inserted/updated ID.
+// Exec executes the UPSERT query and returns the inserted/updated ID. Will return error on MYSQL dialect.
 func (u *MixinIDUpsertOne) ID(ctx context.Context) (id uuid.UUID, err error) {
 	if u.create.driver.Dialect() == dialect.MySQL {
 		// In case of "ON CONFLICT", there is no way to get back non-numeric ID
@@ -377,6 +377,29 @@ func (u *MixinIDUpsertOne) IDX(ctx context.Context) uuid.UUID {
 		panic(err)
 	}
 	return id
+}
+
+// Save upsert the MixinID in the database and returns the last inserted record. Will return error on MYSQL dialect.
+func (u *MixinIDUpsertOne) Save(ctx context.Context) (*MixinID, error) {
+	if u.create.driver.Dialect() == dialect.MySQL {
+		// In case of "ON CONFLICT", there is no way to get back the record
+		// fields from the database since MySQL does not support the RETURNING clause.
+		return nil, errors.New("ent: MixinIDUpsertOne.Save is not supported by MySQL driver. Use MixinIDUpsertOne.Exec instead")
+	}
+	node, err := u.create.Save(ctx)
+	if err != nil {
+		return node, err
+	}
+	return node, nil
+}
+
+// SaveX calls Save and panics if Save returns an error.
+func (u *MixinIDUpsertOne) SaveX(ctx context.Context) *MixinID {
+	node, err := u.Save(ctx)
+	if err != nil {
+		panic(err)
+	}
+	return node
 }
 
 // MixinIDCreateBulk is the builder for creating many MixinID entities in bulk.

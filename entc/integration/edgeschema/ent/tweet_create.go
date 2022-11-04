@@ -11,6 +11,7 @@ import (
 	"errors"
 	"fmt"
 
+	"entgo.io/ent/dialect"
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/entc/integration/edgeschema/ent/tag"
@@ -465,7 +466,7 @@ func (u *TweetUpsertOne) ExecX(ctx context.Context) {
 	}
 }
 
-// Exec executes the UPSERT query and returns the inserted/updated ID.
+// Exec executes the UPSERT query and returns the inserted/updated ID. Will return error on MYSQL dialect.
 func (u *TweetUpsertOne) ID(ctx context.Context) (id int, err error) {
 	node, err := u.create.Save(ctx)
 	if err != nil {
@@ -481,6 +482,29 @@ func (u *TweetUpsertOne) IDX(ctx context.Context) int {
 		panic(err)
 	}
 	return id
+}
+
+// Save upsert the Tweet in the database and returns the last inserted record. Will return error on MYSQL dialect.
+func (u *TweetUpsertOne) Save(ctx context.Context) (*Tweet, error) {
+	if u.create.driver.Dialect() == dialect.MySQL {
+		// In case of "ON CONFLICT", there is no way to get back the record
+		// fields from the database since MySQL does not support the RETURNING clause.
+		return nil, errors.New("ent: TweetUpsertOne.Save is not supported by MySQL driver. Use TweetUpsertOne.Exec instead")
+	}
+	node, err := u.create.Save(ctx)
+	if err != nil {
+		return node, err
+	}
+	return node, nil
+}
+
+// SaveX calls Save and panics if Save returns an error.
+func (u *TweetUpsertOne) SaveX(ctx context.Context) *Tweet {
+	node, err := u.Save(ctx)
+	if err != nil {
+		panic(err)
+	}
+	return node
 }
 
 // TweetCreateBulk is the builder for creating many Tweet entities in bulk.

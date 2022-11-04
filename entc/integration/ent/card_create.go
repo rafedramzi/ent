@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"time"
 
+	"entgo.io/ent/dialect"
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/entc/integration/ent/card"
@@ -545,7 +546,7 @@ func (u *CardUpsertOne) ExecX(ctx context.Context) {
 	}
 }
 
-// Exec executes the UPSERT query and returns the inserted/updated ID.
+// Exec executes the UPSERT query and returns the inserted/updated ID. Will return error on MYSQL dialect.
 func (u *CardUpsertOne) ID(ctx context.Context) (id int, err error) {
 	node, err := u.create.Save(ctx)
 	if err != nil {
@@ -561,6 +562,29 @@ func (u *CardUpsertOne) IDX(ctx context.Context) int {
 		panic(err)
 	}
 	return id
+}
+
+// Save upsert the Card in the database and returns the last inserted record. Will return error on MYSQL dialect.
+func (u *CardUpsertOne) Save(ctx context.Context) (*Card, error) {
+	if u.create.driver.Dialect() == dialect.MySQL {
+		// In case of "ON CONFLICT", there is no way to get back the record
+		// fields from the database since MySQL does not support the RETURNING clause.
+		return nil, errors.New("ent: CardUpsertOne.Save is not supported by MySQL driver. Use CardUpsertOne.Exec instead")
+	}
+	node, err := u.create.Save(ctx)
+	if err != nil {
+		return node, err
+	}
+	return node, nil
+}
+
+// SaveX calls Save and panics if Save returns an error.
+func (u *CardUpsertOne) SaveX(ctx context.Context) *Card {
+	node, err := u.Save(ctx)
+	if err != nil {
+		panic(err)
+	}
+	return node
 }
 
 // CardCreateBulk is the builder for creating many Card entities in bulk.

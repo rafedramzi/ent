@@ -272,7 +272,7 @@ func (u *OtherUpsertOne) ExecX(ctx context.Context) {
 	}
 }
 
-// Exec executes the UPSERT query and returns the inserted/updated ID.
+// Exec executes the UPSERT query and returns the inserted/updated ID. Will return error on MYSQL dialect.
 func (u *OtherUpsertOne) ID(ctx context.Context) (id sid.ID, err error) {
 	if u.create.driver.Dialect() == dialect.MySQL {
 		// In case of "ON CONFLICT", there is no way to get back non-numeric ID
@@ -293,6 +293,29 @@ func (u *OtherUpsertOne) IDX(ctx context.Context) sid.ID {
 		panic(err)
 	}
 	return id
+}
+
+// Save upsert the Other in the database and returns the last inserted record. Will return error on MYSQL dialect.
+func (u *OtherUpsertOne) Save(ctx context.Context) (*Other, error) {
+	if u.create.driver.Dialect() == dialect.MySQL {
+		// In case of "ON CONFLICT", there is no way to get back the record
+		// fields from the database since MySQL does not support the RETURNING clause.
+		return nil, errors.New("ent: OtherUpsertOne.Save is not supported by MySQL driver. Use OtherUpsertOne.Exec instead")
+	}
+	node, err := u.create.Save(ctx)
+	if err != nil {
+		return node, err
+	}
+	return node, nil
+}
+
+// SaveX calls Save and panics if Save returns an error.
+func (u *OtherUpsertOne) SaveX(ctx context.Context) *Other {
+	node, err := u.Save(ctx)
+	if err != nil {
+		panic(err)
+	}
+	return node
 }
 
 // OtherCreateBulk is the builder for creating many Other entities in bulk.

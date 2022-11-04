@@ -11,6 +11,7 @@ import (
 	"errors"
 	"fmt"
 
+	"entgo.io/ent/dialect"
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/entc/integration/ent/pet"
@@ -589,7 +590,7 @@ func (u *PetUpsertOne) ExecX(ctx context.Context) {
 	}
 }
 
-// Exec executes the UPSERT query and returns the inserted/updated ID.
+// Exec executes the UPSERT query and returns the inserted/updated ID. Will return error on MYSQL dialect.
 func (u *PetUpsertOne) ID(ctx context.Context) (id int, err error) {
 	node, err := u.create.Save(ctx)
 	if err != nil {
@@ -605,6 +606,29 @@ func (u *PetUpsertOne) IDX(ctx context.Context) int {
 		panic(err)
 	}
 	return id
+}
+
+// Save upsert the Pet in the database and returns the last inserted record. Will return error on MYSQL dialect.
+func (u *PetUpsertOne) Save(ctx context.Context) (*Pet, error) {
+	if u.create.driver.Dialect() == dialect.MySQL {
+		// In case of "ON CONFLICT", there is no way to get back the record
+		// fields from the database since MySQL does not support the RETURNING clause.
+		return nil, errors.New("ent: PetUpsertOne.Save is not supported by MySQL driver. Use PetUpsertOne.Exec instead")
+	}
+	node, err := u.create.Save(ctx)
+	if err != nil {
+		return node, err
+	}
+	return node, nil
+}
+
+// SaveX calls Save and panics if Save returns an error.
+func (u *PetUpsertOne) SaveX(ctx context.Context) *Pet {
+	node, err := u.Save(ctx)
+	if err != nil {
+		panic(err)
+	}
+	return node
 }
 
 // PetCreateBulk is the builder for creating many Pet entities in bulk.

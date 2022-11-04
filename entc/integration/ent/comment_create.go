@@ -11,6 +11,7 @@ import (
 	"errors"
 	"fmt"
 
+	"entgo.io/ent/dialect"
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/entc/integration/ent/comment"
@@ -582,7 +583,7 @@ func (u *CommentUpsertOne) ExecX(ctx context.Context) {
 	}
 }
 
-// Exec executes the UPSERT query and returns the inserted/updated ID.
+// Exec executes the UPSERT query and returns the inserted/updated ID. Will return error on MYSQL dialect.
 func (u *CommentUpsertOne) ID(ctx context.Context) (id int, err error) {
 	node, err := u.create.Save(ctx)
 	if err != nil {
@@ -598,6 +599,29 @@ func (u *CommentUpsertOne) IDX(ctx context.Context) int {
 		panic(err)
 	}
 	return id
+}
+
+// Save upsert the Comment in the database and returns the last inserted record. Will return error on MYSQL dialect.
+func (u *CommentUpsertOne) Save(ctx context.Context) (*Comment, error) {
+	if u.create.driver.Dialect() == dialect.MySQL {
+		// In case of "ON CONFLICT", there is no way to get back the record
+		// fields from the database since MySQL does not support the RETURNING clause.
+		return nil, errors.New("ent: CommentUpsertOne.Save is not supported by MySQL driver. Use CommentUpsertOne.Exec instead")
+	}
+	node, err := u.create.Save(ctx)
+	if err != nil {
+		return node, err
+	}
+	return node, nil
+}
+
+// SaveX calls Save and panics if Save returns an error.
+func (u *CommentUpsertOne) SaveX(ctx context.Context) *Comment {
+	node, err := u.Save(ctx)
+	if err != nil {
+		panic(err)
+	}
+	return node
 }
 
 // CommentCreateBulk is the builder for creating many Comment entities in bulk.

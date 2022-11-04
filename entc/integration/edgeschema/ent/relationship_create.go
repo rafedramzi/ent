@@ -11,6 +11,7 @@ import (
 	"errors"
 	"fmt"
 
+	"entgo.io/ent/dialect"
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/entc/integration/edgeschema/ent/relationship"
@@ -504,6 +505,29 @@ func (u *RelationshipUpsertOne) ExecX(ctx context.Context) {
 	if err := u.create.Exec(ctx); err != nil {
 		panic(err)
 	}
+}
+
+// Save upsert the Relationship in the database and returns the last inserted record. Will return error on MYSQL dialect.
+func (u *RelationshipUpsertOne) Save(ctx context.Context) (*Relationship, error) {
+	if u.create.driver.Dialect() == dialect.MySQL {
+		// In case of "ON CONFLICT", there is no way to get back the record
+		// fields from the database since MySQL does not support the RETURNING clause.
+		return nil, errors.New("ent: RelationshipUpsertOne.Save is not supported by MySQL driver. Use RelationshipUpsertOne.Exec instead")
+	}
+	node, err := u.create.Save(ctx)
+	if err != nil {
+		return node, err
+	}
+	return node, nil
+}
+
+// SaveX calls Save and panics if Save returns an error.
+func (u *RelationshipUpsertOne) SaveX(ctx context.Context) *Relationship {
+	node, err := u.Save(ctx)
+	if err != nil {
+		panic(err)
+	}
+	return node
 }
 
 // RelationshipCreateBulk is the builder for creating many Relationship entities in bulk.

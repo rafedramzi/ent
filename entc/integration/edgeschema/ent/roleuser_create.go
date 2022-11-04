@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"time"
 
+	"entgo.io/ent/dialect"
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/entc/integration/edgeschema/ent/role"
@@ -411,6 +412,29 @@ func (u *RoleUserUpsertOne) ExecX(ctx context.Context) {
 	if err := u.create.Exec(ctx); err != nil {
 		panic(err)
 	}
+}
+
+// Save upsert the RoleUser in the database and returns the last inserted record. Will return error on MYSQL dialect.
+func (u *RoleUserUpsertOne) Save(ctx context.Context) (*RoleUser, error) {
+	if u.create.driver.Dialect() == dialect.MySQL {
+		// In case of "ON CONFLICT", there is no way to get back the record
+		// fields from the database since MySQL does not support the RETURNING clause.
+		return nil, errors.New("ent: RoleUserUpsertOne.Save is not supported by MySQL driver. Use RoleUserUpsertOne.Exec instead")
+	}
+	node, err := u.create.Save(ctx)
+	if err != nil {
+		return node, err
+	}
+	return node, nil
+}
+
+// SaveX calls Save and panics if Save returns an error.
+func (u *RoleUserUpsertOne) SaveX(ctx context.Context) *RoleUser {
+	node, err := u.Save(ctx)
+	if err != nil {
+		panic(err)
+	}
+	return node
 }
 
 // RoleUserCreateBulk is the builder for creating many RoleUser entities in bulk.

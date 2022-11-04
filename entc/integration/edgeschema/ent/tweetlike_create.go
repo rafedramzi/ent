@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"time"
 
+	"entgo.io/ent/dialect"
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/entc/integration/edgeschema/ent/tweet"
@@ -417,6 +418,29 @@ func (u *TweetLikeUpsertOne) ExecX(ctx context.Context) {
 	if err := u.create.Exec(ctx); err != nil {
 		panic(err)
 	}
+}
+
+// Save upsert the TweetLike in the database and returns the last inserted record. Will return error on MYSQL dialect.
+func (u *TweetLikeUpsertOne) Save(ctx context.Context) (*TweetLike, error) {
+	if u.create.driver.Dialect() == dialect.MySQL {
+		// In case of "ON CONFLICT", there is no way to get back the record
+		// fields from the database since MySQL does not support the RETURNING clause.
+		return nil, errors.New("ent: TweetLikeUpsertOne.Save is not supported by MySQL driver. Use TweetLikeUpsertOne.Exec instead")
+	}
+	node, err := u.create.Save(ctx)
+	if err != nil {
+		return node, err
+	}
+	return node, nil
+}
+
+// SaveX calls Save and panics if Save returns an error.
+func (u *TweetLikeUpsertOne) SaveX(ctx context.Context) *TweetLike {
+	node, err := u.Save(ctx)
+	if err != nil {
+		panic(err)
+	}
+	return node
 }
 
 // TweetLikeCreateBulk is the builder for creating many TweetLike entities in bulk.

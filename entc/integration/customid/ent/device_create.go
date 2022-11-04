@@ -351,7 +351,7 @@ func (u *DeviceUpsertOne) ExecX(ctx context.Context) {
 	}
 }
 
-// Exec executes the UPSERT query and returns the inserted/updated ID.
+// Exec executes the UPSERT query and returns the inserted/updated ID. Will return error on MYSQL dialect.
 func (u *DeviceUpsertOne) ID(ctx context.Context) (id schema.ID, err error) {
 	if u.create.driver.Dialect() == dialect.MySQL {
 		// In case of "ON CONFLICT", there is no way to get back non-numeric ID
@@ -372,6 +372,29 @@ func (u *DeviceUpsertOne) IDX(ctx context.Context) schema.ID {
 		panic(err)
 	}
 	return id
+}
+
+// Save upsert the Device in the database and returns the last inserted record. Will return error on MYSQL dialect.
+func (u *DeviceUpsertOne) Save(ctx context.Context) (*Device, error) {
+	if u.create.driver.Dialect() == dialect.MySQL {
+		// In case of "ON CONFLICT", there is no way to get back the record
+		// fields from the database since MySQL does not support the RETURNING clause.
+		return nil, errors.New("ent: DeviceUpsertOne.Save is not supported by MySQL driver. Use DeviceUpsertOne.Exec instead")
+	}
+	node, err := u.create.Save(ctx)
+	if err != nil {
+		return node, err
+	}
+	return node, nil
+}
+
+// SaveX calls Save and panics if Save returns an error.
+func (u *DeviceUpsertOne) SaveX(ctx context.Context) *Device {
+	node, err := u.Save(ctx)
+	if err != nil {
+		panic(err)
+	}
+	return node
 }
 
 // DeviceCreateBulk is the builder for creating many Device entities in bulk.
