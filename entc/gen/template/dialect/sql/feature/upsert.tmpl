@@ -225,7 +225,7 @@ func (u *{{ $upsertOne }}) ExecX(ctx context.Context) {
 }
 
 {{ if $.HasOneFieldID }}
-	// Exec executes the UPSERT query and returns the inserted/updated ID.
+	// Exec executes the UPSERT query and returns the inserted/updated ID. Will return error on MYSQL dialect.
 	func (u *{{ $upsertOne }}) ID(ctx context.Context) (id {{ $.ID.Type }}, err error) {
 		{{- if and $udfID (not $.ID.Type.Numeric) }}
 			if u.create.driver.Dialect() == dialect.MySQL {
@@ -250,6 +250,29 @@ func (u *{{ $upsertOne }}) ExecX(ctx context.Context) {
 		return id
 	}
 {{ end }}
+
+// Save upsert the {{ $.Name }} in the database and returns the last inserted record. Will return error on MYSQL dialect.
+func (u *{{ $upsertOne }}) Save(ctx context.Context) (*{{ $.Name }}, error) {
+  if u.create.driver.Dialect() == dialect.MySQL {
+    // In case of "ON CONFLICT", there is no way to get back the record
+    // fields from the database since MySQL does not support the RETURNING clause.
+    return nil, errors.New("{{ $pkg }}: {{ $upsertOne }}.Save is not supported by MySQL driver. Use {{ $upsertOne }}.Exec instead")
+  }
+  node, err := u.create.Save(ctx)
+  if err != nil {
+    return node, err
+  }
+  return node, nil
+}
+
+// SaveX calls Save and panics if Save returns an error.
+func (u *{{ $upsertOne }}) SaveX(ctx context.Context) *{{ $.Name }} {
+  node, err := u.Save(ctx)
+  if err != nil {
+    panic(err)
+  }
+  return node
+}
 
 {{ end }}
 
