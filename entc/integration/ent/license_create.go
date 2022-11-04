@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"time"
 
+	"entgo.io/ent/dialect"
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/entc/integration/ent/license"
@@ -341,7 +342,7 @@ func (u *LicenseUpsertOne) ExecX(ctx context.Context) {
 	}
 }
 
-// Exec executes the UPSERT query and returns the inserted/updated ID.
+// Exec executes the UPSERT query and returns the inserted/updated ID. Will return error on MYSQL dialect.
 func (u *LicenseUpsertOne) ID(ctx context.Context) (id int, err error) {
 	node, err := u.create.Save(ctx)
 	if err != nil {
@@ -357,6 +358,29 @@ func (u *LicenseUpsertOne) IDX(ctx context.Context) int {
 		panic(err)
 	}
 	return id
+}
+
+// Save upsert the License in the database and returns the last inserted record. Will return error on MYSQL dialect.
+func (u *LicenseUpsertOne) Save(ctx context.Context) (*License, error) {
+	if u.create.driver.Dialect() == dialect.MySQL {
+		// In case of "ON CONFLICT", there is no way to get back the record
+		// fields from the database since MySQL does not support the RETURNING clause.
+		return nil, errors.New("ent: LicenseUpsertOne.Save is not supported by MySQL driver. Use LicenseUpsertOne.Exec instead")
+	}
+	node, err := u.create.Save(ctx)
+	if err != nil {
+		return node, err
+	}
+	return node, nil
+}
+
+// SaveX calls Save and panics if Save returns an error.
+func (u *LicenseUpsertOne) SaveX(ctx context.Context) *License {
+	node, err := u.Save(ctx)
+	if err != nil {
+		panic(err)
+	}
+	return node
 }
 
 // LicenseCreateBulk is the builder for creating many License entities in bulk.

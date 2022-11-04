@@ -317,7 +317,7 @@ func (u *SessionUpsertOne) ExecX(ctx context.Context) {
 	}
 }
 
-// Exec executes the UPSERT query and returns the inserted/updated ID.
+// Exec executes the UPSERT query and returns the inserted/updated ID. Will return error on MYSQL dialect.
 func (u *SessionUpsertOne) ID(ctx context.Context) (id schema.ID, err error) {
 	if u.create.driver.Dialect() == dialect.MySQL {
 		// In case of "ON CONFLICT", there is no way to get back non-numeric ID
@@ -338,6 +338,29 @@ func (u *SessionUpsertOne) IDX(ctx context.Context) schema.ID {
 		panic(err)
 	}
 	return id
+}
+
+// Save upsert the Session in the database and returns the last inserted record. Will return error on MYSQL dialect.
+func (u *SessionUpsertOne) Save(ctx context.Context) (*Session, error) {
+	if u.create.driver.Dialect() == dialect.MySQL {
+		// In case of "ON CONFLICT", there is no way to get back the record
+		// fields from the database since MySQL does not support the RETURNING clause.
+		return nil, errors.New("ent: SessionUpsertOne.Save is not supported by MySQL driver. Use SessionUpsertOne.Exec instead")
+	}
+	node, err := u.create.Save(ctx)
+	if err != nil {
+		return node, err
+	}
+	return node, nil
+}
+
+// SaveX calls Save and panics if Save returns an error.
+func (u *SessionUpsertOne) SaveX(ctx context.Context) *Session {
+	node, err := u.Save(ctx)
+	if err != nil {
+		panic(err)
+	}
+	return node
 }
 
 // SessionCreateBulk is the builder for creating many Session entities in bulk.

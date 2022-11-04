@@ -447,7 +447,7 @@ func (u *DocUpsertOne) ExecX(ctx context.Context) {
 	}
 }
 
-// Exec executes the UPSERT query and returns the inserted/updated ID.
+// Exec executes the UPSERT query and returns the inserted/updated ID. Will return error on MYSQL dialect.
 func (u *DocUpsertOne) ID(ctx context.Context) (id schema.DocID, err error) {
 	if u.create.driver.Dialect() == dialect.MySQL {
 		// In case of "ON CONFLICT", there is no way to get back non-numeric ID
@@ -468,6 +468,29 @@ func (u *DocUpsertOne) IDX(ctx context.Context) schema.DocID {
 		panic(err)
 	}
 	return id
+}
+
+// Save upsert the Doc in the database and returns the last inserted record. Will return error on MYSQL dialect.
+func (u *DocUpsertOne) Save(ctx context.Context) (*Doc, error) {
+	if u.create.driver.Dialect() == dialect.MySQL {
+		// In case of "ON CONFLICT", there is no way to get back the record
+		// fields from the database since MySQL does not support the RETURNING clause.
+		return nil, errors.New("ent: DocUpsertOne.Save is not supported by MySQL driver. Use DocUpsertOne.Exec instead")
+	}
+	node, err := u.create.Save(ctx)
+	if err != nil {
+		return node, err
+	}
+	return node, nil
+}
+
+// SaveX calls Save and panics if Save returns an error.
+func (u *DocUpsertOne) SaveX(ctx context.Context) *Doc {
+	node, err := u.Save(ctx)
+	if err != nil {
+		panic(err)
+	}
+	return node
 }
 
 // DocCreateBulk is the builder for creating many Doc entities in bulk.
